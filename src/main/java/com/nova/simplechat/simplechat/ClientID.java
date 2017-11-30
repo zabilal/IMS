@@ -12,6 +12,7 @@ public class ClientID {
 
     private String room;
     private String id;
+    private String phoneNumber;
     private String username;
     private boolean authenticated = false;
 
@@ -49,5 +50,13 @@ public class ClientID {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
     }
 }

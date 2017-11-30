@@ -78,4 +78,14 @@ public class Message {
         return this;
     }
 
+    @Override
+    public String toString() {
+        return "Message{" +
+            "sender='" + sender + '\'' +
+            ", content='" + content + '\'' +
+            ", room='" + room + '\'' +
+            ", header=" + header +
+            ", command=" + command +
+            '}';
+    }
 }

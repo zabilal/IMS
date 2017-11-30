@@ -46,8 +46,8 @@ public class StringUtils {
 	public String generateToken() {
 		return new BigInteger(130, secureRandom).toString(5);
 	}
-        
-        protected String getSaltString(int size) {
+
+    protected static String genSaltString(int size) {
                 String SALTCHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
                 StringBuilder salt = new StringBuilder();
                 Random rnd = new Random();
@@ -56,7 +56,7 @@ public class StringUtils {
                     salt.append(SALTCHARS.charAt(index));
                 }
                 String saltStr = salt.toString();
-                
+
                 return saltStr;
 
         }
