@@ -186,6 +186,27 @@ public class ChatVerticle extends AbstractVerticle {
         }
     }
 
+    /**
+     * Sends a message to specific user[Private Chat].
+     *
+     * @param receiver of the user that will receive the message
+     *           this id is used to fetch client handler from clients map.
+     * @param message which should be sent.
+     */
+    protected void messageClient(String receiver, Object message) {
+        System.out.println("Available clients : " + clients);
+        ClientID client = clients.get(receiver);
+        System.out.println("Receiving Client : " + client.toString());
+
+        if (client != null) {
+            if (message instanceof Message){
+//                room.addHistory((Message) message);
+//                System.out.println("Message arrived in Room :  " + room.toString() );
+                sendBus(client.getId(), Serializer.pack(message));
+            }
+        }
+    }
+
 
     protected Map<String, ClientID> getClients() {
         return clients;

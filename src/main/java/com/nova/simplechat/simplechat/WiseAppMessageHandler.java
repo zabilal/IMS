@@ -13,12 +13,18 @@ package com.nova.simplechat.simplechat;
 
                 System.out.println(message.getRoom());
 
-                message.setSender(params.client.getUsername());
+                message.setSender(params.client.getPhoneNumber());//getUsername()); //Original
 //                message.setRoom(params.client.getRoom());
 
                 System.out.println(params.client.getId() + " sent a Message to Room : " + message.getRoom() );
-                params.handler.messageRoom(message.getRoom(), message);
-                params.handler.sendBus(Configuration.NOTIFY, Serializer.pack(message));
+                if(message.getRoom() != null){
+                    params.handler.messageRoom(message.getRoom(), message);
+                    params.handler.sendBus(Configuration.NOTIFY, Serializer.pack(message));
+                }else{
+                    params.handler.messageClient(message.getReceiver(), message);
+                    params.handler.sendBus(Configuration.NOTIFY, Serializer.pack(message));
+                }
+
             }
         },
 
