@@ -200,8 +200,6 @@ public class ChatVerticle extends AbstractVerticle {
 
         if (client != null) {
             if (message instanceof Message){
-//                room.addHistory((Message) message);
-//                System.out.println("Message arrived in Room :  " + room.toString() );
                 sendBus(client.getId(), Serializer.pack(message));
             }
         }
