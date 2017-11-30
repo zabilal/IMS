@@ -10,6 +10,7 @@ import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.eventbus.EventBus;
+import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
@@ -21,42 +22,41 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.StaticHandler;
 import io.vertx.ext.web.handler.sockjs.BridgeOptions;
 import io.vertx.ext.web.handler.sockjs.SockJSHandler;
-
 import java.io.IOException;
 import java.text.DateFormat;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 
 /**
  * Created by Raji Zakariyya
- * <p>
+ *
  * MainVerticle deploys other verticles
+ *
  */
 public class MainVerticle extends AbstractVerticle {
 
     @Override
-    public void start(){
+    public void start() throws Exception {
 
 
         startHttpServer();
 
 //        v1();
 //        vertx.deployVerticle(new ChatVerticle());
+//        v1();
+        vertx.deployVerticle(new ChatVerticle());
+        vertx.deployVerticle(new EventVerticle());
 
     }
 
-    private void v1() {
+    private void v1(){
         final Pattern chatUrlPattern = Pattern.compile("/");
         final EventBus eventBus = vertx.eventBus();
         final Logger logger = LoggerFactory.getLogger(MainVerticle.class);
         final ArrayList<String> users = new ArrayList<>();
-
 
         vertx.createHttpServer().websocketHandler(ws -> {
             final Matcher m = chatUrlPattern.matcher(ws.path());
@@ -64,57 +64,35 @@ public class MainVerticle extends AbstractVerticle {
                 ws.reject();
                 return;
             }
+            final String chatRoom = m.group(0);
 
             MultiMap headers = ws.headers();
+//            final String id = headers.get("id");
 
-            final String chatRoom = m.group(0);
             final String id = ws.textHandlerID();
-//            logger.info("registering new connection with id: " + id + " for chat-room: " + chatRoom);
-//            vertx.sharedData().getLocalMap("chat.room." + chatRoom).put(id, id);
-//            users.add(id);
-
-            ws.closeHandler(event -> {
-                logger.info("un-registering connection with id: " + id + " from chat-room: " + chatRoom);
-                vertx.sharedData().getLocalMap("chat.room." + chatRoom).remove(id);
-            });
+            logger.info("registering new connection with id: " + id + " for chat-room: " + chatRoom);
+            vertx.sharedData().getLocalMap("chat.room." + chatRoom).put(id, id);
+            users.add(id);
 
             ws.handler(data -> {
 
+                int i = 0;
                 ObjectMapper m1 = new ObjectMapper();
                 try {
                     JsonNode rootNode = m1.readTree(data.toString());
-                    ((ObjectNode) rootNode).put("received", new Date().toString());
+//                    ((ObjectNode) rootNode).put("received", new Date().toString());
+                    ((ObjectNode) rootNode).put("received", System.currentTimeMillis());
                     String jsonOutput = m1.writeValueAsString(rootNode);
-//                    logger.info("json generated: " + jsonOutput);
+                    logger.info("json generated: " + jsonOutput);
 
                     LocalMap<String, Object> localMap = vertx.sharedData().getLocalMap("chat.room." + chatRoom);
-                    JsonObject json = new JsonObject(jsonOutput);
 
-                    if (json.getString("header").equals("register")) {
+                    i++;
 
-                        String newId = json.getString("id");
+                    for (Map.Entry value : localMap.entrySet()) {
 
-                        vertx.sharedData().getLocalMap("chat.room." + chatRoom).put(newId, newId);
-                        users.add(json.getString("id"));
-
-                        logger.info("registering new connection with id: " + newId);
-                        logger.info("Number of Currently Connected Users : " + users.size());
-
-                        vertx.eventBus().send(localMap.get(newId).toString(),
-                            new JsonObject().put("status", Boolean.TRUE).put("ID", newId));
-
-                    }
-
-                    if (json.getString("header").equals("message")) {
-
-                        if (json.containsKey("room")) {
-                            for (Map.Entry value : localMap.entrySet()) {
-                                String address = value.getValue().toString();
-                                eventBus.send(address, jsonOutput);
-                            }
-                        } else {
-                            eventBus.send(localMap.get(json.getString("receiver")).toString(), jsonOutput);
-                        }
+                        String address = value.getValue().toString();
+                        eventBus.send(address, jsonOutput + i);
 
                     }
 
@@ -123,17 +101,23 @@ public class MainVerticle extends AbstractVerticle {
                 }
             });
 
+
+            ws.closeHandler(event -> {
+                logger.info("un-registering connection with id: " + id + " from chat-room: " + chatRoom);
+                vertx.sharedData().getLocalMap("chat.room." + chatRoom).remove(id);
+            });
+
         }).listen(8080);
     }
 
 
-    private void v2() {
+    private void v2(){
         Router router = Router.router(vertx);
 
         // Allow events for the designated addresses in/out of the event bus bridge
         BridgeOptions opts = new BridgeOptions()
-            .addInboundPermitted(new PermittedOptions().setAddress("chat.to.server"))
-            .addOutboundPermitted(new PermittedOptions().setAddress("chat.to.client"));
+          .addInboundPermitted(new PermittedOptions().setAddress("chat.to.server"))
+          .addOutboundPermitted(new PermittedOptions().setAddress("chat.to.client"));
 
         // Create the event bus bridge and add it to the router.
         TcpEventBusBridge bridge = TcpEventBusBridge.create(vertx);
@@ -153,10 +137,10 @@ public class MainVerticle extends AbstractVerticle {
 
         // Register to listen for messages coming IN to the server
         eb.consumer("chat.to.server").handler(message -> {
-            // Create a timestamp string
-            String timestamp = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.MEDIUM).format(Date.from(Instant.now()));
-            // Send the message back out to all clients with the timestamp prepended.
-            eb.publish("chat.to.client", timestamp + ": " + message.body());
+          // Create a timestamp string
+          String timestamp = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.MEDIUM).format(Date.from(Instant.now()));
+          // Send the message back out to all clients with the timestamp prepended.
+          eb.publish("chat.to.client", timestamp + ": " + message.body());
         });
     }
 

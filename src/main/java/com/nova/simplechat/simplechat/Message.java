@@ -10,6 +10,7 @@ public class Message {
 
     public static final String ACTION = "message";
     private String sender;
+    private String receiver;
     private String content;
     private String room;
     private Header header;
@@ -26,6 +27,13 @@ public class Message {
     public Message(String content, String room) {
         this.content = content;
         this.room = room;
+        this.header = new Header(ACTION);
+    }
+
+    public Message(String content, String sender, String receiver){
+        this.content = content;
+        this.sender = sender;
+        this.receiver = receiver;
         this.header = new Header(ACTION);
     }
 
@@ -69,6 +77,13 @@ public class Message {
         return this;
     }
 
+    public Message setReceiver(String receiver){
+        this.receiver = receiver;
+        return this;
+    }
+
+    public String getReceiver(){return receiver;}
+
     public Boolean getCommand() {
         return command;
     }
@@ -78,4 +93,15 @@ public class Message {
         return this;
     }
 
+    @Override
+    public String toString() {
+        return "Message{" +
+            "sender='" + sender + '\'' +
+            ", receiver='" + receiver + '\'' +
+            ", content='" + content + '\'' +
+            ", room='" + room + '\'' +
+            ", header=" + header +
+            ", command=" + command +
+            '}';
+    }
 }
