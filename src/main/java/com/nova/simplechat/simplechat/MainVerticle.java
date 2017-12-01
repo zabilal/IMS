@@ -3,6 +3,8 @@ package com.nova.simplechat.simplechat;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.nova.data.MongoDB;
+import com.nova.services.ServiceEndPoints;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
@@ -39,6 +41,11 @@ public class MainVerticle extends AbstractVerticle {
     @Override
     public void start() throws Exception {
 
+
+        startHttpServer();
+
+//        v1();
+//        vertx.deployVerticle(new ChatVerticle());
 //        v1();
         vertx.deployVerticle(new ChatVerticle());
 
@@ -134,6 +141,17 @@ public class MainVerticle extends AbstractVerticle {
           // Send the message back out to all clients with the timestamp prepended.
           eb.publish("chat.to.client", timestamp + ": " + message.body());
         });
+    }
+
+    private void startHttpServer() {
+        try {
+            new MongoDB(vertx);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        Router router = Router.router(vertx);
+        new ServiceEndPoints(vertx, router);
+        vertx.createHttpServer().requestHandler(router::accept).listen(8080);
     }
 
 }
