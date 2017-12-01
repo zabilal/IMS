@@ -67,7 +67,7 @@ public class ChatVerticle extends AbstractVerticle {
                 });
 
                 event.closeHandler(close -> {
-                    removeFromRoom(client.getRoom(), client);
+//                    removeFromRoom(client.getRoom(), client);
                     removeClient(client);
                 });
                 addClient(client);
