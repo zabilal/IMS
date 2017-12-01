@@ -25,20 +25,6 @@ enum EventHandler {
         }
     },
 
-    AUTHENTICATE() {
-        @Override
-        public void invoke(Event event) {
-            Authenticate authenticate = (Authenticate) Serializer.unpack(event.data, Authenticate.class);
-
-            authenticate.getHeader().setActor(null);
-
-            ClientID client = event.handler.getClients().get(event.actor);
-            client.setUsername(authenticate.getUsername());
-            client.setAuthenticated(authenticate.isAuthenticated());
-            event.handler.sendBus(event.actor, authenticate);
-        }
-    },
-
     JOIN() {
         @Override
         public void invoke(Event event) {

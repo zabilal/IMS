@@ -41,7 +41,6 @@ public class MainVerticle extends AbstractVerticle {
 
 //        v1();
         vertx.deployVerticle(new ChatVerticle());
-        vertx.deployVerticle(new EventVerticle());
 
     }
 

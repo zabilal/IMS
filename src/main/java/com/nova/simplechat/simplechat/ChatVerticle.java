@@ -18,7 +18,6 @@ public class ChatVerticle extends AbstractVerticle {
     private Map<String, ClientID> clients = new HashMap<>();
     private Map<String, ChatRoom> rooms = new HashMap<>();
     private Map<String, WiseAppMessageHandler> messageHandler = new HashMap<>();
-    private Map<String, AuthenticationHandler> authenticationHandler = new HashMap<>();
     private Map<String, EventHandler> eventHandler = new HashMap<>();
 
     private HttpServer server;
@@ -32,14 +31,12 @@ public class ChatVerticle extends AbstractVerticle {
     public void start(Future<Void> startFuture) throws Exception {
 
         // Bind action names to methods, using an enum.
-        authenticationHandler.put(Authenticate.ACTION, AuthenticationHandler.AUTHENTICATE);
 
         messageHandler.put(Message.ACTION, WiseAppMessageHandler.MESSAGE);
         messageHandler.put(Join.ACTION, WiseAppMessageHandler.JOIN);
         messageHandler.put(Topic.ACTION, WiseAppMessageHandler.TOPIC);
 
         eventHandler.put(Message.ACTION, EventHandler.MESSAGE);
-        eventHandler.put(Authenticate.ACTION, EventHandler.AUTHENTICATE);
         eventHandler.put(Room.ACTION, EventHandler.ROOM);
         eventHandler.put(UserEvent.ACTION, EventHandler.JOIN);
         eventHandler.put(Topic.ACTION, EventHandler.TOPIC);
