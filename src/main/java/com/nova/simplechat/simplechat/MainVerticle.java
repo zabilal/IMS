@@ -4,10 +4,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nova.data.MongoDB;
+import com.nova.services.RestServer;
 import com.nova.services.ServiceEndPoints;
-import io.vertx.core.AbstractVerticle;
-import io.vertx.core.Handler;
-import io.vertx.core.MultiMap;
+import io.vertx.core.*;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.http.HttpServer;
@@ -38,17 +37,43 @@ import java.util.regex.Pattern;
  */
 public class MainVerticle extends AbstractVerticle {
 
+    public static final int MONGO_PORT = 27017;
+
     @Override
-    public void start() throws Exception {
+    public void start(Future<Void> future) throws Exception {
+
+//        startHttpServer();
+
+        Future<String> start = deployRestServer().setHandler(car->{
+            if(car.succeeded()){
+                vertx.deployVerticle(new ChatVerticle());
+            }else{
+                car.cause();
+            }
+        });
 
 
-        startHttpServer();
 
-//        v1();
-//        vertx.deployVerticle(new ChatVerticle());
-//        v1();
-        vertx.deployVerticle(new ChatVerticle());
+    }
 
+    private Future<String> deployRestServer(){
+
+        Future<String> future = Future.future();
+
+        JsonObject dbConfig = new JsonObject();
+        dbConfig.put("mongo", mongoConfig());
+        DeploymentOptions brokerOptions = new DeploymentOptions();
+        brokerOptions.setConfig(dbConfig);
+
+        vertx.deployVerticle(RestServer.class.getName(), brokerOptions, handler ->{
+            if (handler.failed()){
+                future.fail(handler.cause());
+            }else{
+                future.complete();
+            }
+        });
+
+        return future;
     }
 
     private void v1(){
@@ -109,7 +134,6 @@ public class MainVerticle extends AbstractVerticle {
         }).listen(8080);
     }
 
-
     private void v2(){
         Router router = Router.router(vertx);
 
@@ -152,6 +176,14 @@ public class MainVerticle extends AbstractVerticle {
         Router router = Router.router(vertx);
         new ServiceEndPoints(vertx, router);
         vertx.createHttpServer().requestHandler(router::accept).listen(8080);
+    }
+
+    private static JsonObject mongoConfig() {
+        JsonObject config = new JsonObject();
+        config.put("host", "localhost");
+        config.put("port", MONGO_PORT);
+        config.put("db_name", "wiseapp");
+        return config;
     }
 
 }
