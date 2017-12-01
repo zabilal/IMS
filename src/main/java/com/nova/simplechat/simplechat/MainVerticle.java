@@ -144,9 +144,6 @@ public class MainVerticle extends AbstractVerticle {
         });
     }
 
-
-
-
     private void startHttpServer() {
         try {
             new MongoDB(vertx);

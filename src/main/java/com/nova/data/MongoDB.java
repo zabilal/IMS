@@ -67,6 +67,10 @@ public class MongoDB {
 //
 //        });
 
+        mongoClient.createIndex(getCollName(User.class), new JsonObject("{ \"email\": 1 }, { unique: true }"), null);
+        mongoClient.createIndex(getCollName(User.class), new JsonObject("{ \"phone\": 1 }, { unique: true }"), null);
+        mongoClient.createIndex(getCollName(User.class), new JsonObject("{ \"username\": 1 }, { unique: true }"), null);
+
     }
 
 
