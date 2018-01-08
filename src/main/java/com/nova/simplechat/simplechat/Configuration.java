@@ -10,11 +10,11 @@ import java.util.Random;
 
 public class Configuration {
 
-    public static final String REGISTER_NAME = "vertx.server." + new Random().nextInt(999);
-    public final static String SERVER_ROOM = "DEVELOPER ROOM";
+    public static final String REGISTER_NAME = "wiseapp.server." + new Random().nextInt(999);
+    public final static String SERVER_ROOM = "wiseapp";
     public final static String DEFAULT_ROOM = "Public";
     public final static String SERVER_NAME = "VERT.Y";
-    public final static String SERVER_TOPIC = "WiseAppServer Development";
+    public final static String SERVER_TOPIC = "WiseAppServer Central Room";
     public final static Integer LISTEN_PORT = 8080;//4000 + new Random().nextInt(2999); //dynamic port change on server restart
 
     public static final int LOGGER_PORT = 5454;
@@ -27,8 +27,8 @@ public class Configuration {
     // the number of users which has too leave before advertising READY.
     public static final Integer LOAD_DELTA_BUFFER = 30;
 
-    public static final String NOTIFY = "notify";
-    public static final String EVENT = "event";
+    public static final String UPSTREAM = "notify";
+    public static final String DOWNSTREAM = "event";
 
     // configuration for rooms.
     public static final int MAX_HISTORY = 50;

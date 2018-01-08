@@ -25,6 +25,20 @@ enum EventHandler {
         }
     },
 
+    AUTHENTICATE() {
+        @Override
+        public void invoke(Event event) {
+            Authenticate authenticate = (Authenticate) Serializer.unpack(event.data, Authenticate.class);
+
+            authenticate.getHeader().setActor(null);
+
+            ClientID client = event.handler.getClients().get(event.actor);
+            client.setUsername(authenticate.getUsername());
+            client.setAuthenticated(authenticate.isAuthenticated());
+            event.handler.sendBus(event.actor, authenticate);
+        }
+    },
+
     JOIN() {
         @Override
         public void invoke(Event event) {
@@ -39,15 +53,15 @@ enum EventHandler {
             Topic topic = (Topic) Serializer.unpack(event.data, Topic.class);
             event.handler.setRoomTopic(topic, false);
         }
-    };
+    },
 
-//    SERVERS() {
-//        @Override
-//        public void invoke(Event event) {
-//            ServerList servers = (ServerList) Serializer.unpack(event.data, ServerList.class);
-//            event.handler.sendBus(event.handler.getClient(event.actor).getId(), servers);
-//        }
-//    };
+    SERVERS() {
+        @Override
+        public void invoke(Event event) {
+            ServerList servers = (ServerList) Serializer.unpack(event.data, ServerList.class);
+            event.handler.sendBus(event.handler.getClient(event.actor).getId(), servers);
+        }
+    };
 
     public abstract void invoke(Event event);
 }

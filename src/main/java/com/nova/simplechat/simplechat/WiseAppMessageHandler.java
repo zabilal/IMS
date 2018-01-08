@@ -19,10 +19,10 @@ package com.nova.simplechat.simplechat;
                 System.out.println(params.client.getId() + " sent a Message to Room : " + message.getRoom() );
                 if(message.getRoom() != null){
                     params.handler.messageRoom(message.getRoom(), message);
-                    params.handler.sendBus(Configuration.NOTIFY, Serializer.pack(message));
+                    params.handler.sendBus(Configuration.UPSTREAM, Serializer.pack(message));
                 }else{
                     params.handler.messageClient(message.getReceiver(), message);
-                    params.handler.sendBus(Configuration.NOTIFY, Serializer.pack(message));
+                    params.handler.sendBus(Configuration.UPSTREAM, Serializer.pack(message));
                 }
 
             }
@@ -50,6 +50,13 @@ package com.nova.simplechat.simplechat;
             public void invoke(Parameters params) {
                 Topic topic = (Topic) Serializer.unpack(params.data, Topic.class);
                 params.handler.trySetTopic(topic.setRoom(params.client.getRoom()), params.client);
+            }
+        },
+
+        SERVERS() {
+            @Override
+            public void invoke(Parameters params) {
+                params.handler.sendBus(Configuration.UPSTREAM, new ServerList(params.client.getId()));
             }
         };
 

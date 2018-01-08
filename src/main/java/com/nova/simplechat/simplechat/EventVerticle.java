@@ -1,9 +1,6 @@
 package com.nova.simplechat.simplechat;
 
-import io.vertx.core.Context;
-import io.vertx.core.Future;
-import io.vertx.core.Verticle;
-import io.vertx.core.Vertx;
+import io.vertx.core.*;
 import io.vertx.core.http.HttpClient;
 
 /**
@@ -11,7 +8,7 @@ import io.vertx.core.http.HttpClient;
  * <p>
  * Handles events from the backend and emits events to the backend.
  */
-class EventVerticle implements Verticle {
+public class EventVerticle extends AbstractVerticle {
 
     private static final Integer CONNECTOR_PORT = 5030;
     private Vertx vertx;
@@ -38,13 +35,15 @@ class EventVerticle implements Verticle {
 
         client.websocket(CONNECTOR_PORT, "localhost", "/", event -> {
 
+            System.out.println("CONNECTED TO THE SERVER BRIDGE " );
+
             // listen for events from the backend connector service.
             event.handler(data -> {
-                vertx.eventBus().send(Configuration.EVENT, data);
+                vertx.eventBus().send(Configuration.DOWNSTREAM, data);
             });
 
             // forward emitted events onto the connector.
-            vertx.eventBus().consumer(Configuration.NOTIFY, handler -> {
+            vertx.eventBus().consumer(Configuration.UPSTREAM, handler -> {
                 vertx.eventBus().send(event.textHandlerID(), handler.body().toString());
             });
 
@@ -52,6 +51,8 @@ class EventVerticle implements Verticle {
             vertx.eventBus().send(event.textHandlerID(),
                     Serializer.pack(new Register(Configuration.REGISTER_NAME, Configuration.LISTEN_PORT + "")));
         });
+
+//        System.out.println(" " );
     }
 
     @Override

@@ -26,4 +26,8 @@ public class UserDAO {
         JsonObject query = new JsonObject();
         mongo.find(TABLE_USERS, query, handler);
     }
+
+    public void checkRegisteredContacts(JsonObject payload, Handler<AsyncResult<List<JsonObject>>> handler){
+
+    }
 }

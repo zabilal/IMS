@@ -30,7 +30,7 @@ import java.util.regex.Pattern;
 
 
 /**
- * Created by Raji Zakariyya
+ * Created by Raji Zakariyya on 05/01/2018
  *
  * MainVerticle deploys other verticles
  *
@@ -44,16 +44,17 @@ public class MainVerticle extends AbstractVerticle {
 
 //        startHttpServer();
 
-        Future<String> start = deployRestServer().setHandler(car->{
-            if(car.succeeded()){
-                vertx.deployVerticle(new ChatVerticle());
-            }else{
-                car.cause();
-            }
-        });
+//        Future<String> start = deployRestServer().setHandler(car->{
+//            if(car.succeeded()){
+//                vertx.deployVerticle(new ChatVerticle());
+//            }else{
+//                car.cause();
+//            }
+//        });
 
-
-
+        vertx.deployVerticle(new ChatVerticle());
+        vertx.deployVerticle(new EventVerticle());
+//        vertx.deployVerticle(new ServerLogger());
     }
 
     private Future<String> deployRestServer(){
@@ -90,11 +91,11 @@ public class MainVerticle extends AbstractVerticle {
             }
             final String chatRoom = m.group(0);
 
-            MultiMap headers = ws.headers();
+//            MultiMap headers = ws.headers();
 //            final String id = headers.get("id");
 
             final String id = ws.textHandlerID();
-            logger.info("registering new connection with id: " + id + " for chat-room: " + chatRoom);
+            logger.info("Registering new connection with id: " + id + " for chat-room: " + chatRoom);
             vertx.sharedData().getLocalMap("chat.room." + chatRoom).put(id, id);
             users.add(id);
 

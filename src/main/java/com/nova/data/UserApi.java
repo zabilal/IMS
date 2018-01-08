@@ -9,6 +9,8 @@ public class UserApi {
 
     private UserDAO dao;
 
+    private JsonObject response;
+
     public UserApi(UserDAO dao){
         this.dao = dao;
     }
@@ -18,9 +20,23 @@ public class UserApi {
         dao.newUser(data, car->{
             if(car.succeeded()){
                 String result = car.result();
-                context.response().end(result);
+                response = new JsonObject()
+                .put("status", Boolean.TRUE)
+                .put("id", result);
+                context.response().end(response.encodePrettily());
+            }
+            else {
+                response = new JsonObject()
+                    .put("status", Boolean.FALSE)
+                    .put("message", car.cause());
+                context.response().end(response.encodePrettily());
             }
         });
+    }
+
+    public void checkRegisteredContacts(RoutingContext context){
+        JsonObject contactPayload = context.getBodyAsJson();
+
     }
 
     public void getAllUserApi(RoutingContext context){

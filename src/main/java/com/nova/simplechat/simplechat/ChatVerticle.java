@@ -1,7 +1,9 @@
 package com.nova.simplechat.simplechat;
 
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Context;
 import io.vertx.core.Future;
+import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
 
 import java.util.HashMap;
@@ -15,12 +17,14 @@ import java.util.Map;
 
 public class ChatVerticle extends AbstractVerticle {
 
+    private Map<String, AuthenticationHandler> authenticationHandler = new HashMap<>();
     private Map<String, ClientID> clients = new HashMap<>();
     private Map<String, ChatRoom> rooms = new HashMap<>();
     private Map<String, WiseAppMessageHandler> messageHandler = new HashMap<>();
     private Map<String, EventHandler> eventHandler = new HashMap<>();
 
     private HttpServer server;
+    private LoadManager loadManager;
 
 
     protected Map<String, ChatRoom> getRooms() {
@@ -28,21 +32,38 @@ public class ChatVerticle extends AbstractVerticle {
     }
 
     @Override
-    public void start(Future<Void> startFuture) throws Exception {
+    public Vertx getVertx() {
+        return vertx;
+    }
+
+    @Override
+    public void init(Vertx vertx, Context context) {
+        this.vertx = vertx;
+
+        loadManager = new LoadManager(vertx);
 
         // Bind action names to methods, using an enum.
+        authenticationHandler.put(Token.ACTION, AuthenticationHandler.AUTHENTICATE_TOKEN);
+        authenticationHandler.put(Authenticate.ACTION, AuthenticationHandler.AUTHENTICATE);
 
         messageHandler.put(Message.ACTION, WiseAppMessageHandler.MESSAGE);
         messageHandler.put(Join.ACTION, WiseAppMessageHandler.JOIN);
         messageHandler.put(Topic.ACTION, WiseAppMessageHandler.TOPIC);
+        messageHandler.put(ServerList.ACTION, WiseAppMessageHandler.SERVERS);
 
         eventHandler.put(Message.ACTION, EventHandler.MESSAGE);
+        eventHandler.put(Authenticate.ACTION, EventHandler.AUTHENTICATE);
         eventHandler.put(Room.ACTION, EventHandler.ROOM);
         eventHandler.put(UserEvent.ACTION, EventHandler.JOIN);
         eventHandler.put(Topic.ACTION, EventHandler.TOPIC);
+        eventHandler.put(ServerList.ACTION, EventHandler.SERVERS);
+    }
+
+    @Override
+    public void start(Future<Void> startFuture) throws Exception {
 
         startServer();
-//        startEventListener();
+        startEventListener();
         startUserCountLog();
     }
 
@@ -50,10 +71,12 @@ public class ChatVerticle extends AbstractVerticle {
 
         server = vertx.createHttpServer().websocketHandler(event -> {
                 final ClientID client = new ClientID(event.textHandlerID());
-                client.setUsername(event.textHandlerID());
+                client.setId(event.textHandlerID());
 
-                String clientPhoneNumber = event.headers().get("id");
+                String clientPhoneNumber = event.headers().get("userId");
                 client.setPhoneNumber(clientPhoneNumber);
+
+                System.out.println("Client Phone Number ::: " + clientPhoneNumber);
 
                 event.handler(data -> {
                     System.out.println("Data from client : " + data.toString() + " from Client : " + client);
@@ -64,16 +87,27 @@ public class ChatVerticle extends AbstractVerticle {
                 });
 
                 event.closeHandler(close -> {
-//                    removeFromRoom(client.getRoom(), client);
+//                    removeFromRoom(client.getRoomMessage from Se(), client);
                     removeClient(client);
                 });
                 addClient(client);
-                sendBus(client.getId(), Serializer.pack(new Room(Configuration.SERVER_ROOM, Configuration.SERVER_TOPIC).setSystem(true)));
+//                sendBus(client.getId(), Serializer.pack(new Room(Configuration.SERVER_ROOM, Configuration.SERVER_TOPIC).setSystem(true)));
             }
         ).listen(Configuration.LISTEN_PORT);
-        System.out.println("Room running on port " + Configuration.LISTEN_PORT);
+        System.out.println("CHAT ROOM SERVER running on port " + Configuration.LISTEN_PORT);
     }
 
+    private void sendAuthenticationFailed(ClientID client) {
+        Authenticate authenticate = new Authenticate().setAuthenticated(false);
+        sendBus(client.getId(), Serializer.pack(authenticate));
+    }
+
+    private void startEventListener() {
+        vertx.eventBus().consumer(Configuration.DOWNSTREAM, handler -> {
+            Packet packet = (Packet) Serializer.unpack(handler.body().toString(), Packet.class);
+            eventHandler.get(packet.getAction()).invoke(new Event(handler.body().toString(), this));
+        });
+    }
 
     private void startUserCountLog() {
         vertx.setPeriodic(Configuration.LOG_INTERVAL, event -> sendBus(Configuration.BUS_LOGGER, Serializer.pack(new LogUserCount(clients.size()))));
@@ -94,11 +128,11 @@ public class ChatVerticle extends AbstractVerticle {
         if (rooms.containsKey(name)) {
             sendBus(client.getId(), Serializer.pack(new Room(rooms.get(name).getSettings(), room.getCreated())));
             messageRoom(room.getRoom(), Serializer.pack(new UserEvent(room.getRoom(), client.getUsername(), true)));
-            sendBus(Configuration.NOTIFY, Serializer.pack(new UserEvent(room.getRoom(), client.getUsername(), true)));
+            sendBus(Configuration.UPSTREAM, Serializer.pack(new UserEvent(room.getRoom(), client.getUsername(), true)));
             addToRoom(name, client);
         } else {
-            sendBus(Configuration.NOTIFY, Serializer.pack(new RoomEvent(name, RoomEvent.RoomStatus.POPULATED)));
-            sendBus(Configuration.NOTIFY, Serializer.pack(new Room(name, room.getTopic(), client.getUsername(), client.getId())));
+            sendBus(Configuration.UPSTREAM, Serializer.pack(new RoomEvent(name, RoomEvent.RoomStatus.POPULATED)));
+            sendBus(Configuration.UPSTREAM, Serializer.pack(new Room(name, room.getTopic(), client.getUsername(), client.getId())));
             rooms.put(name, new ChatRoom(room));
             addToRoom(name, client);
         }
@@ -110,7 +144,7 @@ public class ChatVerticle extends AbstractVerticle {
 //        if (client.getRoom() != null)
 //            removeFromRoom(client.getRoom(), client);
 
-        if (room != null) {
+        if (room != null && room.get(client.getId()) != null) {
             room.add(client);
 //            client.setRoom(name);
             System.out.println("Client " + client.getUsername() + " addedd to Room " + name);
@@ -125,17 +159,25 @@ public class ChatVerticle extends AbstractVerticle {
      * @param data    as an object that is Serializable to JSON.
      */
     protected void sendBus(String address, Object data) {
-        vertx.eventBus().send(address, data);
+        vertx.eventBus().send(address, Serializer.pack(data));
     }
 
     private void addClient(ClientID client) {
-        clients.put(client.getPhoneNumber(), client);
-//        loadManager.manage(clients.size());
+
+        if (clients.containsKey(client.getPhoneNumber())) {
+            System.out.println("Client is Already Registered on the Server, Thanks");
+        }
+        else {
+            clients.put(client.getPhoneNumber(), client);
+            System.out.println("Client Registered at : " + client.getId() + " :: Serial :: " + client.getPhoneNumber());
+            loadManager.manage(clients.size());
+        }
     }
 
     private void removeClient(ClientID client) {
-        clients.remove(client.getId());
-//        loadManager.manage(clients.size());
+        clients.remove(client.getPhoneNumber());
+        System.out.println("Client " + client.getId() + " Has been Removed ");
+        loadManager.manage(clients.size());
     }
 
     protected ClientID getClient(String id) {
@@ -153,9 +195,9 @@ public class ChatVerticle extends AbstractVerticle {
             if (rooms.get(room).getClients().isEmpty()) {
                 rooms.remove(room);
 
-                sendBus(Configuration.NOTIFY, Serializer.pack(new RoomEvent(room, RoomEvent.RoomStatus.DEPLETED)));
+                sendBus(Configuration.UPSTREAM, Serializer.pack(new RoomEvent(room, RoomEvent.RoomStatus.DEPLETED)));
             }
-            sendBus(Configuration.NOTIFY, Serializer.pack(new UserEvent(room, client.getUsername(), false)));
+            sendBus(Configuration.UPSTREAM, Serializer.pack(new UserEvent(room, client.getUsername(), false)));
         }
     }
 
@@ -191,13 +233,15 @@ public class ChatVerticle extends AbstractVerticle {
      * @param message which should be sent.
      */
     protected void messageClient(String receiver, Object message) {
-        System.out.println("Available clients : " + clients);
-        ClientID client = clients.get(receiver);
-        System.out.println("Receiving Client : " + client.toString());
+//        System.out.println("Available clients : " + clients);
+        if (clients.get(receiver) != null) {
+            ClientID client = clients.get(receiver);
+            System.out.println("Receiving Client : " + client.toString());
 
-        if (client != null) {
-            if (message instanceof Message){
-                sendBus(client.getId(), Serializer.pack(message));
+            if (client != null) {
+                if (message instanceof Message){
+                    sendBus(client.getId(), Serializer.pack(message));
+                }
             }
         }
     }
@@ -241,7 +285,7 @@ public class ChatVerticle extends AbstractVerticle {
             sendBus(client.getId(), topic);
 
         if (locallyInitiated)
-            sendBus(Configuration.NOTIFY, topic);
+            sendBus(Configuration.UPSTREAM, topic);
     }
 
 
