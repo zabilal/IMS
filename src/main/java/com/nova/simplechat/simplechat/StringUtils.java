@@ -17,7 +17,7 @@ public class StringUtils {
 		try {
 			sha512 = MessageDigest.getInstance("SHA-512");
 		} catch (NoSuchAlgorithmException nsae) {
-			throw new RuntimeException("No such algorithm : SHA-256. Something's really wrong in source code.", nsae);
+			throw new RuntimeException("No such algorithm : SHA-512. Something's really wrong in source code.", nsae);
 		}
 	}
 

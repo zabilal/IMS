@@ -79,7 +79,7 @@ public class ChatVerticle extends AbstractVerticle {
                 System.out.println("Client Phone Number ::: " + clientPhoneNumber);
 
                 event.handler(data -> {
-                    System.out.println("Data from client : " + data.toString() + " from Client : " + client);
+                    System.out.println("Data from client : " + data.toString() + " from Client : " + client.getPhoneNumber());
                     Packet packet = (Packet) (Serializer.unpack(data.toString(), Packet.class));
 
                     messageHandler.get(packet.getAction()).invoke(new Parameters(data.toString(), event, client, this));
@@ -220,7 +220,7 @@ public class ChatVerticle extends AbstractVerticle {
                 System.out.println("Message arrived in Room :  " + room.toString() );
             }
             for (ClientID client : room.getClients().values()) {
-                sendBus(client.getId(), Serializer.pack(message));
+                sendBus(client.getId(), message);
             }
         }
     }
@@ -240,7 +240,8 @@ public class ChatVerticle extends AbstractVerticle {
 
             if (client != null) {
                 if (message instanceof Message){
-                    sendBus(client.getId(), Serializer.pack(message));
+                    System.out.println("Message to Client :::: " + message.toString());
+                    sendBus(client.getId(), message);
                 }
             }
         }

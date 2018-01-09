@@ -15,6 +15,9 @@ public class Message {
     private String room;
     private Header header;
     private Boolean command;
+    private String time;
+    private boolean me;
+
 
     public Message() {
         this("");
@@ -30,10 +33,12 @@ public class Message {
         this.header = new Header(ACTION);
     }
 
-    public Message(String content, String sender, String receiver){
+    public Message(String content, String sender, String receiver, String time, boolean isMe){
         this.content = content;
         this.sender = sender;
         this.receiver = receiver;
+        this.me = isMe;
+        this.time = time;
         this.header = new Header(ACTION);
     }
 
@@ -77,6 +82,22 @@ public class Message {
         return this;
     }
 
+    public String getTime() {
+        return time;
+    }
+
+    public void setTime(String time) {
+        this.time = time;
+    }
+
+    public boolean isMe() {
+        return me;
+    }
+
+    public void setMe(boolean me) {
+        this.me = me;
+    }
+
     public Message setReceiver(String receiver){
         this.receiver = receiver;
         return this;
@@ -93,15 +114,5 @@ public class Message {
         return this;
     }
 
-    @Override
-    public String toString() {
-        return "Message{" +
-            "sender='" + sender + '\'' +
-            ", receiver='" + receiver + '\'' +
-            ", content='" + content + '\'' +
-            ", room='" + room + '\'' +
-            ", header=" + header +
-            ", command=" + command +
-            '}';
-    }
+
 }
