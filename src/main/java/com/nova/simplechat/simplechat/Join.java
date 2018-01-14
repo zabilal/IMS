@@ -19,6 +19,7 @@ public class Join {
         header = new Header(ACTION);
     }
 
+    ////////////////////// Try utilize this constructor
     public Join(String room, String topic) {
         this(new Room(room, topic), false);
     }

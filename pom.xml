@@ -69,6 +69,25 @@
                 </configuration>
             </plugin>
 
+            <!--Vertx Auto build plugin-->
+            <!--<plugin>-->
+                <!--<groupId>io.fabric8</groupId>-->
+                <!--<artifactId>vertx-maven-plugin</artifactId>-->
+                <!--<version>${version}</version>-->
+                <!--<executions>-->
+                    <!--<execution>-->
+                        <!--<id>vmp</id>-->
+                        <!--<goals>-->
+                            <!--<goal>initialize</goal>-->
+                            <!--<goal>package</goal>-->
+                        <!--</goals>-->
+                    <!--</execution>-->
+                <!--</executions>-->
+                <!--<configuration>-->
+                    <!--<redeploy>true</redeploy>-->
+                <!--</configuration>-->
+            <!--</plugin>-->
+
         </plugins>
     </build>
 

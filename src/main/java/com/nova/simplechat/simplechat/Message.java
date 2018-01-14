@@ -18,25 +18,23 @@ public class Message {
     private String time;
     private boolean me;
 
-
     public Message() {
-        this("");
     }
 
-    public Message(String content) {
-        this(content, null);
-    }
-
-    public Message(String content, String room) {
-        this.content = content;
-        this.room = room;
-        this.header = new Header(ACTION);
-    }
 
     public Message(String content, String sender, String receiver, String time, boolean isMe){
         this.content = content;
         this.sender = sender;
         this.receiver = receiver;
+        this.me = isMe;
+        this.time = time;
+        this.header = new Header(ACTION);
+    }
+
+    public Message( boolean isMe, String content, String sender, String room, String time){
+        this.content = content;
+        this.sender = sender;
+        this.room = room;
         this.me = isMe;
         this.time = time;
         this.header = new Header(ACTION);

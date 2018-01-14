@@ -5,8 +5,11 @@ import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
+import io.vertx.core.json.JsonArray;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -22,6 +25,7 @@ public class ChatVerticle extends AbstractVerticle {
     private Map<String, ChatRoom> rooms = new HashMap<>();
     private Map<String, WiseAppMessageHandler> messageHandler = new HashMap<>();
     private Map<String, EventHandler> eventHandler = new HashMap<>();
+    private List<String> onlineContacts = new ArrayList<>();
 
     private HttpServer server;
     private LoadManager loadManager;
@@ -50,6 +54,7 @@ public class ChatVerticle extends AbstractVerticle {
         messageHandler.put(Join.ACTION, WiseAppMessageHandler.JOIN);
         messageHandler.put(Topic.ACTION, WiseAppMessageHandler.TOPIC);
         messageHandler.put(ServerList.ACTION, WiseAppMessageHandler.SERVERS);
+        messageHandler.put(OnlineContact.ACTION, WiseAppMessageHandler.ONLINE);
 
         eventHandler.put(Message.ACTION, EventHandler.MESSAGE);
         eventHandler.put(Authenticate.ACTION, EventHandler.AUTHENTICATE);
@@ -127,12 +132,12 @@ public class ChatVerticle extends AbstractVerticle {
 
         if (rooms.containsKey(name)) {
             sendBus(client.getId(), Serializer.pack(new Room(rooms.get(name).getSettings(), room.getCreated())));
-            messageRoom(room.getRoom(), Serializer.pack(new UserEvent(room.getRoom(), client.getUsername(), true)));
-            sendBus(Configuration.UPSTREAM, Serializer.pack(new UserEvent(room.getRoom(), client.getUsername(), true)));
+            messageRoom(room.getRoom(), Serializer.pack(new UserEvent(room.getRoom(), client.getPhoneNumber(), true)));
+            sendBus(Configuration.UPSTREAM, Serializer.pack(new UserEvent(room.getRoom(), client.getPhoneNumber(), true)));
             addToRoom(name, client);
         } else {
             sendBus(Configuration.UPSTREAM, Serializer.pack(new RoomEvent(name, RoomEvent.RoomStatus.POPULATED)));
-            sendBus(Configuration.UPSTREAM, Serializer.pack(new Room(name, room.getTopic(), client.getUsername(), client.getId())));
+            sendBus(Configuration.UPSTREAM, Serializer.pack(new Room(name, room.getTopic(), client.getPhoneNumber(), client.getId())));
             rooms.put(name, new ChatRoom(room));
             addToRoom(name, client);
         }
@@ -143,11 +148,11 @@ public class ChatVerticle extends AbstractVerticle {
 
 //        if (client.getRoom() != null)
 //            removeFromRoom(client.getRoom(), client);
-
-        if (room != null && room.get(client.getId()) != null) {
+        System.out.println("Logging Room Members ::: " + room.getClients() );
+        if (room != null && room.get(client.getId()) == null) {
             room.add(client);
 //            client.setRoom(name);
-            System.out.println("Client " + client.getUsername() + " addedd to Room " + name);
+            System.out.println("Client " + client.getPhoneNumber() + " added to Room " + name);
         }
     }
 
@@ -189,7 +194,7 @@ public class ChatVerticle extends AbstractVerticle {
         if (rooms.get(room) != null) {
             rooms.get(room).remove(client);
 
-            client.setRoom(null);
+//            client.setRoom(null);
             messageRoom(room, new UserEvent(room, client.getUsername(), false));
 
             if (rooms.get(room).getClients().isEmpty()) {
@@ -197,7 +202,7 @@ public class ChatVerticle extends AbstractVerticle {
 
                 sendBus(Configuration.UPSTREAM, Serializer.pack(new RoomEvent(room, RoomEvent.RoomStatus.DEPLETED)));
             }
-            sendBus(Configuration.UPSTREAM, Serializer.pack(new UserEvent(room, client.getUsername(), false)));
+            sendBus(Configuration.UPSTREAM, Serializer.pack(new UserEvent(room, client.getPhoneNumber(), false)));
         }
     }
 
@@ -219,8 +224,28 @@ public class ChatVerticle extends AbstractVerticle {
                 room.addHistory((Message) message);
                 System.out.println("Message arrived in Room :  " + room.toString() );
             }
+
             for (ClientID client : room.getClients().values()) {
-                sendBus(client.getId(), message);
+                    sendBus(client.getId(), message);
+            }
+        }
+    }
+
+    protected void messageRoom(String name, Message message, String sender) {
+        System.out.println("Available Rooms : " + rooms);
+        ChatRoom room = rooms.get(name);
+        System.out.println("Room Name from ChatRooms : " + room.toString());
+        System.out.println("Clients in the Room : " + room.getClients().toString());
+
+        if (room != null) {
+            if (message instanceof Message){
+                room.addHistory(message);
+                System.out.println("Message arrived in Room :  " + room.toString() );
+            }
+
+            for (ClientID client : room.getClients().values()) {
+                if (client.getPhoneNumber() != sender)
+                    sendBus(client.getId(), message);
             }
         }
     }
@@ -287,6 +312,30 @@ public class ChatVerticle extends AbstractVerticle {
 
         if (locallyInitiated)
             sendBus(Configuration.UPSTREAM, topic);
+    }
+
+    /**
+     * Receives contacts from clients and if those contacts are online, then sends back
+     * a list containing only those that are online
+     *
+     * @param contacts a list of contacts(phone numbers) received from client on connnection     *
+     * @param sender the client making the enquiries for online contacts
+     *
+     * */
+    protected void checkOnlineStatus(String contacts, String sender){
+        onlineContacts.clear(); //clear the map for next client
+
+        ClientID client = clients.get(sender);
+
+        String [] contactArray = contacts.split(",");
+
+        for (int i = 0; i < contactArray.length; i++) {
+            if (clients.containsKey(contactArray[i])){
+                onlineContacts.add(contactArray[i]);
+            }
+        }
+
+        sendBus(client.getId(), onlineContacts);
     }
 
 

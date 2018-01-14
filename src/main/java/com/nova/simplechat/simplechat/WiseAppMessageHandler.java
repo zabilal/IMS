@@ -11,16 +11,16 @@ package com.nova.simplechat.simplechat;
             public void invoke(Parameters params) {
                 Message message = (Message) Serializer.unpack(params.data, Message.class);
 
-                System.out.println(message.getRoom());
-
                 message.setSender(params.client.getPhoneNumber());//getUsername()); //Original
 //                message.setRoom(params.client.getRoom());
 
                 System.out.println(params.client.getId() + " sent a Message to Room : " + message.getRoom() );
                 if(message.getRoom() != null){
-                    params.handler.messageRoom(message.getRoom(), message);
+                    params.handler.messageRoom(message.getRoom(), message, message.getSender());
                     params.handler.sendBus(Configuration.UPSTREAM, Serializer.pack(message));
-                }else{
+                }
+
+                else {
                     params.handler.messageClient(message.getReceiver(), message);
                     params.handler.sendBus(Configuration.UPSTREAM, Serializer.pack(message));
                 }
@@ -58,8 +58,15 @@ package com.nova.simplechat.simplechat;
             public void invoke(Parameters params) {
                 params.handler.sendBus(Configuration.UPSTREAM, new ServerList(params.client.getId()));
             }
-        };
+        },
 
+        ONLINE() {
+            @Override
+            public void invoke(Parameters params) {
+                OnlineContact onlineContact = (OnlineContact) Serializer.unpack(params.data, OnlineContact.class);
+                params.handler.checkOnlineStatus(onlineContact.getContacts(), onlineContact.getSender());
+            }
+        };
 
         public abstract void invoke(Parameters params);
 }

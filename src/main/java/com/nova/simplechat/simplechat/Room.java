@@ -41,6 +41,13 @@ public class Room {
         this.header = new Header(ACTION, id);
     }
 
+    public Room(String room, String topic, String owner) {
+        this.room = room;
+        this.topic = topic;
+        this.username = owner;
+        this.header = new Header(ACTION);
+    }
+
     public Room(Room room, Boolean created) {
         this(room.getRoom(), room.getTopic(), room.getOwner(), null);
         this.created = created;
