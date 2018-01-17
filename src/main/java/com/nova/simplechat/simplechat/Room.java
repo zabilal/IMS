@@ -14,9 +14,9 @@ public class Room {
 
 
     public static final String ACTION = "room";
-    private String topic = Configuration.SERVER_TOPIC;
-    private String room = Configuration.DEFAULT_ROOM;
-    private String version = Configuration.SERVER_NAME;
+    private String topic;
+    private String room;
+    private String version;
     private String owner;
     private Header header;
     private String username;
@@ -137,4 +137,19 @@ public class Room {
         this.history = history;
     }
 
+    @Override
+    public String toString() {
+        return "Room{" +
+            "topic='" + topic + '\'' +
+            ", room='" + room + '\'' +
+            ", version='" + version + '\'' +
+            ", owner='" + owner + '\'' +
+            ", header=" + header +
+            ", username='" + username + '\'' +
+            ", created=" + created +
+            ", errorInsideAlready=" + errorInsideAlready +
+            ", system=" + system +
+            ", history=" + history +
+            '}';
+    }
 }

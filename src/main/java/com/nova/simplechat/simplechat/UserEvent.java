@@ -13,10 +13,16 @@ public class UserEvent {
     public static final String ACTION = "user.event";
     private Boolean join;
     private String room;
-    private String username;
+    private String username; //phone number
     private Header header;
 
     public UserEvent() {
+    }
+
+    public UserEvent(String username, Boolean join) {
+        this.username = username;
+        this.join = join;
+        this.header = new Header(ACTION);
     }
 
     public UserEvent(String room, String username, Boolean join) {

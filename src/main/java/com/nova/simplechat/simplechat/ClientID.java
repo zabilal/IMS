@@ -59,4 +59,15 @@ public class ClientID {
     public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
     }
+
+    @Override
+    public String toString() {
+        return "ClientID{" +
+            "room='" + room + '\'' +
+            ", id='" + id + '\'' +
+            ", phoneNumber='" + phoneNumber + '\'' +
+            ", username='" + username + '\'' +
+            ", authenticated=" + authenticated +
+            '}';
+    }
 }

@@ -66,6 +66,14 @@ package com.nova.simplechat.simplechat;
                 OnlineContact onlineContact = (OnlineContact) Serializer.unpack(params.data, OnlineContact.class);
                 params.handler.checkOnlineStatus(onlineContact.getContacts(), onlineContact.getSender());
             }
+        },
+
+        GETROOMS() {
+            @Override
+            public void invoke(Parameters params) {
+                RoomFinder roomChecker = (RoomFinder) Serializer.unpack(params.data, RoomFinder.class);
+                params.handler.fetchMyRooms(roomChecker);
+            }
         };
 
         public abstract void invoke(Parameters params);

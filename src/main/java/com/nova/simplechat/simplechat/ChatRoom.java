@@ -40,7 +40,8 @@ public class ChatRoom {
     }
 
     public void add(ClientID client) {
-        clients.put(client.getId(), client);
+//        clients.put(client.getId(), client);
+        clients.put(client.getPhoneNumber(), client);
     }
 
     public void setSettings(Room settings) {
@@ -62,5 +63,11 @@ public class ChatRoom {
         settings.getHistory().add(message);
     }
 
-
+    @Override
+    public String toString() {
+        return "ChatRoom{" +
+            "clients=" + clients +
+            ", settings=" + settings +
+            '}';
+    }
 }

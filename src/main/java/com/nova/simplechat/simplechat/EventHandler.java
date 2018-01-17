@@ -43,7 +43,11 @@ enum EventHandler {
         @Override
         public void invoke(Event event) {
             UserEvent userEvent = (UserEvent) Serializer.unpack(event.data, UserEvent.class);
-            event.handler.messageRoom(userEvent.getRoom(), userEvent);
+//            event.handler.messageRoom(userEvent.getRoom(), userEvent);
+            if (userEvent.getRoom() != null)
+                event.handler.messageRoom(userEvent.getRoom(), userEvent);
+            else
+                event.handler.notifyClients(userEvent);
         }
     },
 
