@@ -5,6 +5,7 @@ import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
+import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
@@ -31,6 +32,7 @@ public class ChatVerticle extends AbstractVerticle {
 //    private JsonArray roomList = new JsonArray();
 
     private HttpServer server;
+    private HttpServerOptions serverOptions;
     private LoadManager loadManager;
 
 
@@ -78,7 +80,10 @@ public class ChatVerticle extends AbstractVerticle {
 
     private void startServer() {
 
-        server = vertx.createHttpServer().websocketHandler(event -> {
+        serverOptions = new HttpServerOptions();
+        serverOptions.setIdleTimeout(0);
+
+        server = vertx.createHttpServer(serverOptions).websocketHandler(event -> {
                 final ClientID client = new ClientID(event.textHandlerID());
                 client.setId(event.textHandlerID());
 
@@ -90,21 +95,21 @@ public class ChatVerticle extends AbstractVerticle {
                 event.handler(data -> {
                     System.out.println("Data from client : " + data.toString() + " from Client : " + client.getPhoneNumber());
                     Packet packet = (Packet) (Serializer.unpack(data.toString(), Packet.class));
-
-                    messageHandler.get(packet.getAction()).invoke(new Parameters(data.toString(), event, client, this));
-//
+                    messageHandler.get(packet.getAction()).invoke(new Parameters(data.toString(), event, client, this));//
                 });
 
                 event.closeHandler(close -> {
 //                    removeFromRoom(client.getRoomMessage from Se(), client);
                     removeClient(client);
                 });
-                addClient(client);
 
+                addClient(client);
 //                sendBus(client.getId(), Serializer.pack(new Room(Configuration.SERVER_ROOM, Configuration.SERVER_TOPIC).setSystem(true)));
             }
         ).listen(Configuration.LISTEN_PORT);
         System.out.println("CHAT ROOM SERVER running on port " + Configuration.LISTEN_PORT);
+
+
     }
 
     private void sendAuthenticationFailed(ClientID client) {
@@ -205,10 +210,8 @@ public class ChatVerticle extends AbstractVerticle {
 
 //            client.setRoom(null);
             messageRoom(room, new UserEvent(room, client.getUsername(), false));
-
             if (rooms.get(room).getClients().isEmpty()) {
                 rooms.remove(room);
-
                 sendBus(Configuration.UPSTREAM, new RoomEvent(room, RoomEvent.RoomStatus.DEPLETED));
             }
             sendBus(Configuration.UPSTREAM, new UserEvent(room, client.getPhoneNumber(), false));
@@ -223,17 +226,11 @@ public class ChatVerticle extends AbstractVerticle {
      * @param message which should be sent.
      */
     protected void messageRoom(String name, Object message) {
-        System.out.println("Available Rooms : " + rooms);
         ChatRoom room = rooms.get(name);
-        System.out.println("Room Name from ChatRooms : " + room.toString());
-        System.out.println("Clients in the Room : " + room.getClients().toString());
-
         if (room != null) {
             if (message instanceof Message){
                 room.addHistory((Message) message);
-                System.out.println("Message arrived in Room :  " + room.toString() );
             }
-
             for (ClientID client : room.getClients().values()) {
                     sendBus(client.getId(), message);
             }
@@ -241,17 +238,11 @@ public class ChatVerticle extends AbstractVerticle {
     }
 
     protected void messageRoom(String name, Message message, String sender) {
-        System.out.println("Available Rooms : " + rooms);
         ChatRoom room = rooms.get(name);
-        System.out.println("Room Name from ChatRooms : " + room.toString());
-        System.out.println("Clients in the Room : " + room.getClients().toString());
-
         if (room != null) {
             if (message instanceof Message){
                 room.addHistory(message);
-                System.out.println("Message arrived in Room :  " + room.toString() );
             }
-
             for (ClientID client : room.getClients().values()) {
                 if (client.getPhoneNumber() != sender)
                     sendBus(client.getId(), message);
@@ -267,14 +258,10 @@ public class ChatVerticle extends AbstractVerticle {
      * @param message which should be sent.
      */
     protected void messageClient(String receiver, Object message) {
-//        System.out.println("Available clients : " + clients);
         if (clients.get(receiver) != null) {
             ClientID client = clients.get(receiver);
-            System.out.println("Receiving Client : " + client.toString());
-
             if (client != null) {
                 if (message instanceof Message){
-                    System.out.println("Message to Client :::: " + message.toString());
                     sendBus(client.getId(), message);
                 }
             }
@@ -335,21 +322,14 @@ public class ChatVerticle extends AbstractVerticle {
         onlineContacts.clear(); //clear the map for next client
 
         ClientID client = clients.get(sender);
-
         String [] contactArray = contacts.split(",");
-
-        System.out.println("Total Contacts ::: " + clients);
-        System.out.println("Sender :::: " + sender);
-
         if (sender != null) {
             for (int i = 0; i < contactArray.length; i++) {
                 if (clients.containsKey(contactArray[i])){
                     onlineContacts.add(contactArray[i]);
                 }
             }
-
             if (onlineContacts.size() > 0) {
-                System.out.println("Online Contacts ::: " + onlineContacts);
                 vertx.eventBus().send(client.getId(), new JsonObject().put("online", onlineContacts).encodePrettily());
             }
         }
@@ -357,7 +337,12 @@ public class ChatVerticle extends AbstractVerticle {
     }
 
 
-    //Fetching all Rooms to which a client belongs
+    /**
+     * Receives room object to search for rooms which sender belongs to
+     *
+     * @param roomChecker a room finder object from client on connnection
+     *
+     * */
     protected void fetchMyRooms(RoomFinder roomChecker) {
 
         String sender = roomChecker.getSender();
@@ -368,12 +353,10 @@ public class ChatVerticle extends AbstractVerticle {
         if (!rooms.isEmpty() && client.getId() != null) {
             for (Map.Entry roomObject : rooms.entrySet()) {
                 ChatRoom chatRoom = (ChatRoom) roomObject.getValue();
-                System.out.println("Room Name :::: " + chatRoom.getSettings().getRoom());
                 if (chatRoom.get(sender).getPhoneNumber() != null)
                     roomList.add(chatRoom);
             }
             if (roomList.size() > 0) {
-                System.out.println("List of Belonging Rooms ::: " + roomList);
                 vertx.eventBus().send(client.getId(), new JsonObject().put("rooms", roomList).encodePrettily());
             }
         }
@@ -388,7 +371,6 @@ public class ChatVerticle extends AbstractVerticle {
 
 
     public void notifyClients(UserEvent userEvent) {
-        System.out.println("Notifying All Clients of USER presence");
         for (Map.Entry clientEntry : clients.entrySet()) {
             ClientID client = (ClientID) clientEntry.getValue();
             if (client.getPhoneNumber() != userEvent.getUsername())
